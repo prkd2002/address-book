@@ -12,18 +12,22 @@ import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatTableModule} from '@angular/material/table';
 import {MatCardModule} from '@angular/material/card';
 import {MatInputModule} from '@angular/material/input';
-
+import {MatDialogModule} from '@angular/material/dialog';
 
 import { HomeComponent } from './home/home.component';
 import { ContactsComponent } from './contacts/contacts.component';
 import { NewcontactComponent } from './newcontact/newcontact.component';
 import { ReactiveFormsModule } from '@angular/forms';
+import { UpdateDialogComponent } from './dialogs/update-dialog/update-dialog.component';
+import { DeleteDialogComponent } from './dialogs/delete-dialog/delete-dialog.component';
 @NgModule({
   declarations: [
     AppComponent,
     HomeComponent,
     ContactsComponent,
-    NewcontactComponent
+    NewcontactComponent,
+    UpdateDialogComponent,
+    DeleteDialogComponent
   ],
   imports: [
     BrowserModule,
@@ -35,7 +39,8 @@ import { ReactiveFormsModule } from '@angular/forms';
     MatTableModule,
     MatCardModule,
     MatInputModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    MatDialogModule
   ],
   providers: [
     provideAnimationsAsync()

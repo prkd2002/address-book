@@ -34,7 +34,7 @@ export class ContactsService {
 
   }
 
-  updateContacts(newContact:Contact){
+  createContacts(newContact:Contact){
     //finding highest id;
     let highestId = 0;
     this.contacts.forEach(contactsObject => {
@@ -50,6 +50,18 @@ export class ContactsService {
       address: newContact.address
       
     });
+
+
+
+   
+  }
+
+  updateContact(updateContact:Contact) {
+    const index = this.contacts.findIndex(contact => contact.id == updateContact.id);
+    this.contacts[index].firstName = updateContact.firstName;
+    this.contacts[index].lastName = updateContact.lastName;
+    this.contacts[index].phoneNumber = updateContact.phoneNumber;
+    this.contacts[index].address = updateContact.address;
 
   }
 }
