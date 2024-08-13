@@ -29,3 +29,8 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 =======
 # address-book
 >>>>>>> 7d4103281c18963b5e17d8368ef6921f8c7c6775
+>>>>>>>
+>>>>>>> ![Uploading image.png…]()
+
+>>>>>>>
+>>>>>>> The Angular Address Book App is a simple and intuitive application that allows users to manage their contacts efficiently. Users can add, edit, delete contacts within the app. Each contact includes details such as name, phone number, email, and address. The app features a clean and responsive interface, making it easy to organize and access contact information.
