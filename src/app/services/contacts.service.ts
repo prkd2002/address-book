@@ -33,4 +33,23 @@ export class ContactsService {
     return this.contacts;
 
   }
+
+  updateContacts(newContact:Contact){
+    //finding highest id;
+    let highestId = 0;
+    this.contacts.forEach(contactsObject => {
+      if(contactsObject.id> highestId){
+        highestId = contactsObject.id;
+      }
+    })
+    this.contacts.push({
+      id:highestId +1,
+      firstName: newContact.firstName,
+      lastName: newContact.lastName,
+      phoneNumber: newContact.phoneNumber,
+      address: newContact.address
+      
+    });
+
+  }
 }
