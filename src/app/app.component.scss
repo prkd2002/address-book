@@ -1,0 +1,50 @@
+#menuTitle{
+  font-size: medium;
+  margin-right: 20px;
+}
+
+.custom-toolbar{
+  background: #3f51b5;
+  color: white;
+}
+
+.mat-toolbar{
+  height: 60px;
+}
+.mat-sidenav{
+  background-color: #3f51b5;
+  color: white;
+}
+
+.side-nav-items{
+  display: flexbox;
+  width: 160px;
+}
+
+.side-menu-item{
+  color: white !important;
+}
+.main-content{
+  margin: 20px;
+}
+
+
+@media (min-width: 900px){
+  #menuIcon{
+
+    display: none;
+  }
+  .mat-sidenav{
+    display: none;
+  }
+
+
+}
+
+
+@media (max-width: 900px){
+  .top-menu-item{
+    display: none;
+  }
+
+}
