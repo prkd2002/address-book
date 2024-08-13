@@ -64,4 +64,10 @@ export class ContactsService {
     this.contacts[index].address = updateContact.address;
 
   }
+
+  deleteContact(id:number){
+    const index = this.contacts.findIndex(contactsObject => contactsObject.id = id);
+    this.contacts.splice(index, 1);
+
+  }
 }

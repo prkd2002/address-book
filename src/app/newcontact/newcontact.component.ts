@@ -25,7 +25,8 @@ export class NewcontactComponent {
   );
 
   constructor(private router:Router,
-    private contactService:ContactsService
+    private contactService:ContactsService,
+     
   ){
 
   }

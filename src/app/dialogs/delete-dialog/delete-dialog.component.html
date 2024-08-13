@@ -1,1 +1,37 @@
-<p>delete-dialog works!</p>
+
+<div id="updateForm">
+    <h1 id="updateContactTitle"> Delete Contact</h1>
+    <form [formGroup]="deleteForm" class="myForm" (ngSubmit)="onSubmit()">
+                <div>
+                    <mat-form-field class="myInputs">
+                        <mat-label class="formInput">First Name</mat-label>
+                        <input class="formInput" matInput formControlName="firstName" >
+                      </mat-form-field>
+                </div>
+                <div>
+                    
+                <mat-form-field class="myInputs">
+                    <mat-label class="formInput">Last Name</mat-label>
+                    <input class="formInput" matInput formControlName="lastName">
+                  </mat-form-field>
+                </div>
+                <div>
+                    <mat-form-field class="myInputs">
+                        <mat-label class="formInput">Phone Number</mat-label>
+                        <input class="formInput" matInput formControlName="phoneNumber">
+                      </mat-form-field>
+                </div>
+                <div>
+                    <mat-form-field class="myInputs">
+                        <mat-label class="formInput">Address </mat-label>
+                        <input class="formInput" matInput formControlName="address">
+                      </mat-form-field>
+                </div>
+        
+          <button  class="actionsButtons" mat-button mat-dialog-close color="warn" type="button">Cancel</button>
+          <button class="actionsButtons" mat-button color="primary" type="submit">Delete</button>
+     
+    </form>
+
+</div>
+

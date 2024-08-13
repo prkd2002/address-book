@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Contact } from '../../interfaces/contact';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ContactsService } from '../../services/contacts.service';
@@ -23,7 +23,7 @@ export class UpdateDialogComponent implements OnInit {
     }
   );
 
-  constructor(@Inject(MAT_DIALOG_DATA) public data: Contact,private contactService:ContactsService){
+  constructor(public dialogRef: MatDialogRef<UpdateDialogComponent>,@Inject(MAT_DIALOG_DATA) public data: Contact,private contactService:ContactsService){
     this.contactToUpdate = data;
 
   }
@@ -46,6 +46,7 @@ export class UpdateDialogComponent implements OnInit {
       address: this.updateForm.controls['address'].value as string
     };
     this.contactService.updateContact(this.updateContact);
+    this.dialogRef.close();
     console.log(this.contactService.getContacts);
     }
     
