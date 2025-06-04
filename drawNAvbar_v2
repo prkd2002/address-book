@@ -1,0 +1,735 @@
+package com.example.financialapp
+
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
+
+// Data class pour les éléments du menu
+data class NavigationItem(
+    val title: String,
+    val icon: ImageVector,
+    val route: String,
+    val color: Color
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FinancialApp() {
+    val navController = rememberNavController()
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    
+    // Couleurs pour le thème
+    val primaryColor = Color(0xFF6366F1)
+    val secondaryColor = Color(0xFF8B5CF6)
+    val accentColor = Color(0xFF10B981)
+    val errorColor = Color(0xFFEF4444)
+    
+    // Liste des éléments de navigation
+    val navigationItems = listOf(
+        NavigationItem("Konto Anlegen", Icons.Default.AccountBalance, "konto_anlegen", primaryColor),
+        NavigationItem("Umsatz Verwalten", Icons.Default.TrendingUp, "umsatz_verwalten", accentColor),
+        NavigationItem("Kategorie Verwalten", Icons.Default.Category, "kategorie_verwalten", secondaryColor),
+        NavigationItem("Logout", Icons.Default.Logout, "logout", errorColor)
+    )
+    
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                modifier = Modifier.width(300.dp),
+                drawerContainerColor = Color.White,
+                drawerContentColor = Color.Black
+            ) {
+                DrawerContent(
+                    navigationItems = navigationItems,
+                    navController = navController,
+                    onCloseDrawer = {
+                        scope.launch {
+                            drawerState.close()
+                        }
+                    }
+                )
+            }
+        }
+    ) {
+        NavHost(
+            navController = navController,
+            startDestination = "main"
+        ) {
+            composable("main") {
+                MainScreen(
+                    onMenuClick = {
+                        scope.launch {
+                            drawerState.open()
+                        }
+                    }
+                )
+            }
+            composable("konto_anlegen") {
+                KontoAnlegenScreen(
+                    onMenuClick = {
+                        scope.launch {
+                            drawerState.open()
+                        }
+                    }
+                )
+            }
+            composable("umsatz_verwalten") {
+                UmsatzVerwaltenScreen(
+                    onMenuClick = {
+                        scope.launch {
+                            drawerState.open()
+                        }
+                    }
+                )
+            }
+            composable("kategorie_verwalten") {
+                KategoryScreen(
+                    onMenuClick = {
+                        scope.launch {
+                            drawerState.open()
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DrawerContent(
+    navigationItems: List<NavigationItem>,
+    navController: NavController,
+    onCloseDrawer: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFF8FAFC),
+                        Color.White
+                    )
+                )
+            )
+    ) {
+        // Header du drawer
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF6366F1),
+                            Color(0xFF8B5CF6)
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccountBalance,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Financial Manager",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Verwalten Sie Ihre Finanzen",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 14.sp
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(20.dp))
+        
+        // Navigation Items
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            items(navigationItems.size) { index ->
+                val item = navigationItems[index]
+                
+                NavigationDrawerItem(
+                    item = item,
+                    onClick = {
+                        if (item.route == "logout") {
+                            // Logique de déconnexion
+                            // Vous pouvez ajouter votre logique de logout ici
+                        } else {
+                            navController.navigate(item.route) {
+                                launchSingleTop = true
+                            }
+                        }
+                        onCloseDrawer()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun NavigationDrawerItem(
+    item: NavigationItem,
+    onClick: () -> Unit
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize()
+            .clickable {
+                isPressed = true
+                onClick()
+            },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isPressed) item.color.copy(alpha = 0.1f) else Color.Transparent
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isPressed) 4.dp else 0.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                item.color.copy(alpha = 0.1f),
+                                item.color.copy(alpha = 0.05f)
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.title,
+                    tint = item.color,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Text(
+                text = item.title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF1F2937)
+            )
+        }
+    }
+    
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            kotlinx.coroutines.delay(150)
+            isPressed = false
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen(onMenuClick: () -> Unit) {
+    // Données d'exemple pour les catégories
+    val categories = listOf(
+        CategoryItem("Auto", 75f, Color(0xFF3B82F6)),
+        CategoryItem("Essen", 45f, Color(0xFF10B981)),
+        CategoryItem("Wohnung", 90f, Color(0xFF8B5CF6)),
+        CategoryItem("Freizeit", 30f, Color(0xFFEF4444)),
+        CategoryItem("Gesundheit", 60f, Color(0xFFF59E0B))
+    )
+    
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Hauptseite",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(
+                            Icons.Default.Menu,
+                            contentDescription = "Menu",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF6366F1)
+                )
+            )
+        },
+        bottomBar = {
+            BottomNavigationBar()
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFFF8FAFC),
+                            Color.White
+                        )
+                    )
+                )
+                .padding(16.dp)
+        ) {
+            // Section revenus (en haut)
+            FinancialCard(
+                icon = Icons.Default.KeyboardDoubleArrowUp,
+                amount = "+1372,00€",
+                isPositive = true,
+                title = "Einnahmen"
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Section dépenses
+            FinancialCard(
+                icon = Icons.Default.KeyboardArrowRight,
+                amount = "-173,42€",
+                isPositive = false,
+                title = "Ausgaben"
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Titre pour les catégories
+            Text(
+                text = "Kategorien",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1F2937),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            // Liste des catégories
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(categories.size) { index ->
+                    CategoryCard(category = categories[index])
+                }
+            }
+        }
+    }
+}
+
+// Data class pour les catégories
+data class CategoryItem(
+    val name: String,
+    val percentage: Float,
+    val color: Color
+)
+
+@Composable
+fun FinancialCard(
+    icon: ImageVector,
+    amount: String,
+    isPositive: Boolean,
+    title: String
+) {
+    val cardColor = if (isPositive) Color(0xFF10B981) else Color(0xFFEF4444)
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(cardColor.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = cardColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF374151)
+                )
+            }
+            
+            Text(
+                text = amount,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = cardColor
+            )
+        }
+    }
+}
+
+@Composable
+fun CategoryCard(category: CategoryItem) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icône tirelire
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(category.color.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Savings,
+                    contentDescription = null,
+                    tint = category.color,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            // Nom de la catégorie
+            Text(
+                text = category.name,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF374151),
+                modifier = Modifier.weight(1f)
+            )
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            // Pourcentage
+            Text(
+                text = "${category.percentage.toInt()}%",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = category.color
+            )
+        }
+    }
+}
+
+@Composable
+fun BottomNavigationBar() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icône tirelire à gauche
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF6366F1).copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Savings,
+                    contentDescription = "Tirelire",
+                    tint = Color(0xFF6366F1),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            // Bouton plus à droite
+            FloatingActionButton(
+                onClick = { /* Action pour ajouter */ },
+                containerColor = Color(0xFF6366F1),
+                contentColor = Color.White,
+                modifier = Modifier.size(56.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Hinzufügen",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun KontoAnlegenScreen(onMenuClick: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Konto Anlegen",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(
+                            Icons.Default.Menu,
+                            contentDescription = "Menu",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF6366F1)
+                )
+            )
+        }
+    ) { paddingValues ->
+        ScreenContent(
+            paddingValues = paddingValues,
+            icon = Icons.Default.AccountBalance,
+            title = "Neues Konto erstellen",
+            description = "Hier können Sie ein neues Konto anlegen",
+            color = Color(0xFF6366F1)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UmsatzVerwaltenScreen(onMenuClick: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Umsatz Verwalten",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(
+                            Icons.Default.Menu,
+                            contentDescription = "Menu",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF10B981)
+                )
+            )
+        }
+    ) { paddingValues ->
+        ScreenContent(
+            paddingValues = paddingValues,
+            icon = Icons.Default.TrendingUp,
+            title = "Umsätze verwalten",
+            description = "Hier können Sie Ihre Umsätze verwalten",
+            color = Color(0xFF10B981)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun KategoryScreen(onMenuClick: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Kategorien Verwalten",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(
+                            Icons.Default.Menu,
+                            contentDescription = "Menu",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF8B5CF6)
+                )
+            )
+        }
+    ) { paddingValues ->
+        ScreenContent(
+            paddingValues = paddingValues,
+            icon = Icons.Default.Category,
+            title = "Kategorien verwalten",
+            description = "Hier können Sie Ihre Kategorien verwalten",
+            color = Color(0xFF8B5CF6)
+        )
+    }
+}
+
+@Composable
+fun ScreenContent(
+    paddingValues: PaddingValues,
+    icon: ImageVector,
+    title: String,
+    description: String,
+    color: Color
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFF8FAFC),
+                        Color.White
+                    )
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(32.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                color.copy(alpha = 0.1f),
+                                color.copy(alpha = 0.05f)
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(60.dp),
+                    tint = color
+                )
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = title,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1F2937),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = description,
+                fontSize = 16.sp,
+                color = Color(0xFF6B7280),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
