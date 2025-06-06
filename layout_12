@@ -1,0 +1,305 @@
+// KategorieViewModel.kt
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+
+class KategorieViewModel : ViewModel() {
+    val kategorien = mutableStateListOf("Sport", "Arbeit", "Freizeit")
+    
+    // State für UI-Management
+    var showAddDialog by mutableStateOf(false)
+        private set
+    
+    var showDeleteDialog by mutableStateOf(false)
+        private set
+    
+    var selectedKategorie by mutableStateOf("")
+        private set
+
+    fun addKategorie(kategorie: String) {
+        val trimmedKategorie = kategorie.trim()
+        if (trimmedKategorie.isNotEmpty() && !kategorien.contains(trimmedKategorie)) {
+            kategorien.add(trimmedKategorie)
+        }
+    }
+
+    fun removeKategorie(kategorie: String) {
+        kategorien.remove(kategorie)
+    }
+    
+    fun showAddDialog() {
+        showAddDialog = true
+    }
+    
+    fun hideAddDialog() {
+        showAddDialog = false
+    }
+    
+    fun showDeleteDialog(kategorie: String) {
+        selectedKategorie = kategorie
+        showDeleteDialog = true
+    }
+    
+    fun hideDeleteDialog() {
+        showDeleteDialog = false
+        selectedKategorie = ""
+    }
+    
+    // Simuliert die Prüfung, ob eine Kategorie bereits verwendet wird
+    fun isKategorieZugeordnet(kategorie: String): Boolean {
+        // Hier würde normalerweise die Business-Logik stehen
+        return kategorie == "Sport" // Beispiel: Sport ist bereits zugeordnet
+    }
+}
+
+// KategorieManagementScreen.kt
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+fun KategorieManagementScreen(
+    viewModel: KategorieViewModel = viewModel(),
+    onZurueckClick: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Kategorien verwalten") }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { viewModel.showAddDialog() }
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Kategorie hinzufügen")
+            }
+        },
+        bottomBar = {
+            Button(
+                onClick = onZurueckClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text("Zurück")
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp)
+        ) {
+            if (viewModel.kategorien.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Keine Kategorien vorhanden",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                items(viewModel.kategorien) { kategorie ->
+                    KategorieItem(
+                        kategorie = kategorie,
+                        onLongPress = { viewModel.showDeleteDialog(kategorie) }
+                    )
+                }
+            }
+        }
+    }
+    
+    // Dialoge
+    if (viewModel.showAddDialog) {
+        AddCategoryDialog(
+            onDismiss = { viewModel.hideAddDialog() },
+            onConfirm = { neueKategorie ->
+                viewModel.addKategorie(neueKategorie)
+                viewModel.hideAddDialog()
+            }
+        )
+    }
+    
+    if (viewModel.showDeleteDialog) {
+        KategorieLöschenDialog(
+            kategorie = viewModel.selectedKategorie,
+            isKategorieZugeordnet = viewModel.isKategorieZugeordnet(viewModel.selectedKategorie),
+            onDismiss = { viewModel.hideDeleteDialog() },
+            onConfirm = {
+                viewModel.removeKategorie(viewModel.selectedKategorie)
+                viewModel.hideDeleteDialog()
+            }
+        )
+    }
+}
+
+@Composable
+fun KategorieItem(
+    kategorie: String,
+    onLongPress: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .combinedClickable(
+                onClick = { }, // Rien ne se passe sur un clic simple
+                onLongClick = onLongPress
+            ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = kategorie,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            // Indication visuelle pour le long press
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = "Appui maintenu pour supprimer",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+// AddCategoryDialog.kt
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun AddCategoryDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var text by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+    
+    // Validierung
+    val isValid = text.trim().isNotEmpty()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = "Neue Kategorie hinzufügen")
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text("Kategoriename") },
+                    singleLine = true,
+                    isError = text.isNotEmpty() && text.trim().isEmpty(),
+                    supportingText = {
+                        if (text.isNotEmpty() && text.trim().isEmpty()) {
+                            Text(
+                                text = "Kategoriename darf nicht leer sein",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(text) },
+                enabled = isValid
+            ) {
+                Text("Hinzufügen")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
+    )
+    
+    // Fokus auf das Textfeld setzen
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+}
+
+// KategorieLöschenDialog.kt
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+
+@Composable
+fun KategorieLöschenDialog(
+    kategorie: String,
+    isKategorieZugeordnet: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val (title, message) = if (isKategorieZugeordnet) {
+        "Warnung" to "Die Kategorie '$kategorie' ist bereits Einträgen zugeordnet. Beim Löschen werden diese Zuordnungen entfernt. Trotzdem löschen?"
+    } else {
+        "Kategorie löschen" to "Möchten Sie die Kategorie '$kategorie' wirklich löschen?"
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(title)
+        },
+        text = {
+            Text(message)
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Löschen")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        }
+    )
+}
