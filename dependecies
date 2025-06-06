@@ -1,0 +1,1 @@
+implementation("com.patrykandpatrick.vico:compose:1.13.0") // ou version récente
