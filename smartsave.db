@@ -1,0 +1,288 @@
+-- SmartSave-App Datenbankschema für SQLite
+-- Projektarbeit CS2012 Android-Praktikum
+
+-- =====================================
+-- Konten-Tabellen
+-- =====================================
+
+-- Bankkonto (Girokonto) - nur eines erlaubt
+CREATE TABLE bankkonto (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kontonummer TEXT NOT NULL,
+    blz TEXT NOT NULL,
+    bic TEXT,
+    iban TEXT NOT NULL UNIQUE,
+    bemerkung TEXT,
+    aktueller_saldo REAL DEFAULT 0.0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sparkonto - mehrere erlaubt
+CREATE TABLE sparkonto (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kontonummer TEXT NOT NULL,
+    blz TEXT NOT NULL,
+    bic TEXT,
+    iban TEXT NOT NULL UNIQUE,
+    bemerkung TEXT,
+    aktueller_saldo REAL DEFAULT 0.0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Kreditkartenkonto - optional, nur eines erlaubt
+CREATE TABLE kreditkartenkonto (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kontonummer TEXT NOT NULL,
+    blz TEXT,
+    bic TEXT,
+    iban TEXT,
+    bemerkung TEXT,
+    aktueller_saldo REAL DEFAULT 0.0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================
+-- Kategorien-Tabelle
+-- =====================================
+
+CREATE TABLE kategorien (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================
+-- Umsatz-Tabellen
+-- =====================================
+
+-- Kontoumsätze (aus MT940-Import)
+CREATE TABLE kontoumsaetze (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    konto_typ TEXT NOT NULL CHECK (konto_typ IN ('BANK', 'KREDIT')), -- Bankkonto oder Kreditkartenkonto
+    konto_id INTEGER NOT NULL,
+    umsatzdatum DATE NOT NULL,
+    betrag REAL NOT NULL,
+    verwendungszweck TEXT,
+    empfaenger_zahlungspflichtiger TEXT,
+    referenz TEXT,
+    kategorie_id INTEGER,
+    mt940_referenz TEXT, -- Eindeutige Referenz aus MT940 für Duplikatserkennung
+    ist_differenziert BOOLEAN DEFAULT FALSE, -- Kennzeichen ob Umsatz in Einzelumsätze aufgeteilt wurde
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (kategorie_id) REFERENCES kategorien(id) ON DELETE SET NULL
+);
+
+-- Einzelumsätze (manuell erfasst oder aus Differenzierung)
+CREATE TABLE einzelumsaetze (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    betrag REAL NOT NULL,
+    datum DATE DEFAULT CURRENT_DATE,
+    bezeichnung TEXT,
+    kategorie_id INTEGER,
+    foto_pfad TEXT, -- Pfad zur Quittung/Foto
+    kontoumsatz_id INTEGER, -- Verknüpfung zu aggregiertem Umsatz (optional)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (kategorie_id) REFERENCES kategorien(id) ON DELETE SET NULL,
+    FOREIGN KEY (kontoumsatz_id) REFERENCES kontoumsaetze(id) ON DELETE SET NULL
+);
+
+-- =====================================
+-- Sparziel-Tabellen
+-- =====================================
+
+-- Sparziele
+CREATE TABLE sparziele (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    bezeichnung TEXT NOT NULL UNIQUE,
+    zielbetrag REAL NOT NULL CHECK (zielbetrag > 0),
+    auszahlungsdatum DATE NOT NULL,
+    auszahlungskonto_id INTEGER NOT NULL, -- Bankkonto
+    zielkonto_id INTEGER NOT NULL, -- Sparkonto
+    monatliche_rate REAL NOT NULL,
+    status TEXT DEFAULT 'AKTIV' CHECK (status IN ('AKTIV', 'ABGESCHLOSSEN', 'AUFGELOEST')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (auszahlungskonto_id) REFERENCES bankkonto(id) ON DELETE CASCADE,
+    FOREIGN KEY (zielkonto_id) REFERENCES sparkonto(id) ON DELETE CASCADE
+);
+
+-- Sparziel-Einzahlungen (erkannte Daueraufträge)
+CREATE TABLE sparziel_einzahlungen (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sparziel_id INTEGER NOT NULL,
+    kontoumsatz_id INTEGER NOT NULL, -- Verknüpfung zum erkannten Umsatz
+    betrag REAL NOT NULL,
+    datum DATE NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (sparziel_id) REFERENCES sparziele(id) ON DELETE CASCADE,
+    FOREIGN KEY (kontoumsatz_id) REFERENCES kontoumsaetze(id) ON DELETE CASCADE,
+    UNIQUE(sparziel_id, kontoumsatz_id) -- Ein Umsatz kann nur einem Sparziel zugeordnet werden
+);
+
+-- =====================================
+-- MT940-Import-Tracking
+-- =====================================
+
+-- Tabelle zum Tracking von MT940-Importen (Duplikatserkennung)
+CREATE TABLE mt940_imports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    konto_typ TEXT NOT NULL CHECK (konto_typ IN ('BANK', 'KREDIT')),
+    konto_id INTEGER NOT NULL,
+    dateiname TEXT NOT NULL,
+    anfangssaldo REAL NOT NULL,
+    endsaldo REAL NOT NULL,
+    datum_von DATE NOT NULL,
+    datum_bis DATE NOT NULL,
+    anzahl_umsaetze INTEGER NOT NULL,
+    import_datum DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE(konto_typ, konto_id, dateiname, datum_von, datum_bis)
+);
+
+-- =====================================
+-- Indizes für bessere Performance
+-- =====================================
+
+-- Indizes für häufige Abfragen
+CREATE INDEX idx_kontoumsaetze_datum ON kontoumsaetze(umsatzdatum);
+CREATE INDEX idx_kontoumsaetze_konto ON kontoumsaetze(konto_typ, konto_id);
+CREATE INDEX idx_kontoumsaetze_kategorie ON kontoumsaetze(kategorie_id);
+CREATE INDEX idx_kontoumsaetze_mt940_ref ON kontoumsaetze(mt940_referenz);
+
+CREATE INDEX idx_einzelumsaetze_datum ON einzelumsaetze(datum);
+CREATE INDEX idx_einzelumsaetze_kategorie ON einzelumsaetze(kategorie_id);
+CREATE INDEX idx_einzelumsaetze_kontoumsatz ON einzelumsaetze(kontoumsatz_id);
+
+CREATE INDEX idx_sparziel_einzahlungen_sparziel ON sparziel_einzahlungen(sparziel_id);
+CREATE INDEX idx_sparziel_einzahlungen_datum ON sparziel_einzahlungen(datum);
+
+-- =====================================
+-- Trigger für automatische Updates
+-- =====================================
+
+-- Trigger für updated_at Felder
+CREATE TRIGGER update_bankkonto_timestamp 
+    AFTER UPDATE ON bankkonto
+BEGIN
+    UPDATE bankkonto SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER update_sparkonto_timestamp 
+    AFTER UPDATE ON sparkonto
+BEGIN
+    UPDATE sparkonto SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER update_kreditkartenkonto_timestamp 
+    AFTER UPDATE ON kreditkartenkonto
+BEGIN
+    UPDATE kreditkartenkonto SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER update_kategorien_timestamp 
+    AFTER UPDATE ON kategorien
+BEGIN
+    UPDATE kategorien SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER update_kontoumsaetze_timestamp 
+    AFTER UPDATE ON kontoumsaetze
+BEGIN
+    UPDATE kontoumsaetze SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER update_einzelumsaetze_timestamp 
+    AFTER UPDATE ON einzelumsaetze
+BEGIN
+    UPDATE einzelumsaetze SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER update_sparziele_timestamp 
+    AFTER UPDATE ON sparziele
+BEGIN
+    UPDATE sparziele SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+-- =====================================
+-- Beispiel-Daten für Tests
+-- =====================================
+
+-- Standard-Kategorien
+INSERT INTO kategorien (name) VALUES 
+    ('Wohnen'),
+    ('Fahrzeug/Transport'),
+    ('Lebensmittel'),
+    ('Freizeit'),
+    ('Versicherungen'),
+    ('Gesundheit'),
+    ('Bekleidung'),
+    ('Sonstiges');
+
+-- Beispiel-Bankkonto
+INSERT INTO bankkonto (kontonummer, blz, iban, bemerkung) VALUES 
+    ('76198810', '45050050', 'DE4545050050076198810', 'Hauptkonto Sparkasse');
+
+-- Beispiel-Sparkonto
+INSERT INTO sparkonto (kontonummer, blz, iban, bemerkung) VALUES 
+    ('12345678', '45050050', 'DE4545050050012345678', 'Tagesgeldkonto');
+
+-- =====================================
+-- Views für häufige Abfragen
+-- =====================================
+
+-- View für Umsätze mit Kategorien
+CREATE VIEW v_kontoumsaetze_mit_kategorien AS
+SELECT 
+    k.*,
+    kat.name as kategorie_name
+FROM kontoumsaetze k
+LEFT JOIN kategorien kat ON k.kategorie_id = kat.id;
+
+-- View für Einzelumsätze mit Kategorien
+CREATE VIEW v_einzelumsaetze_mit_kategorien AS
+SELECT 
+    e.*,
+    kat.name as kategorie_name
+FROM einzelumsaetze e
+LEFT JOIN kategorien kat ON e.kategorie_id = kat.id;
+
+-- View für Sparziel-Übersicht
+CREATE VIEW v_sparziele_uebersicht AS
+SELECT 
+    s.*,
+    b.iban as auszahlungskonto_iban,
+    sp.iban as zielkonto_iban,
+    COALESCE(SUM(se.betrag), 0) as bisher_gespart,
+    s.zielbetrag - COALESCE(SUM(se.betrag), 0) as noch_zu_sparen,
+    ROUND((COALESCE(SUM(se.betrag), 0) * 100.0 / s.zielbetrag), 2) as fortschritt_prozent
+FROM sparziele s
+LEFT JOIN bankkonto b ON s.auszahlungskonto_id = b.id
+LEFT JOIN sparkonto sp ON s.zielkonto_id = sp.id
+LEFT JOIN sparziel_einzahlungen se ON s.id = se.sparziel_id
+GROUP BY s.id, b.iban, sp.iban;
+
+-- View für Dashboard-Daten
+CREATE VIEW v_dashboard AS
+SELECT 
+    'BANK' as konto_typ,
+    b.aktueller_saldo,
+    b.iban,
+    b.bemerkung
+FROM bankkonto b
+UNION ALL
+SELECT 
+    'KREDIT' as konto_typ,
+    k.aktueller_saldo,
+    k.iban,
+    k.bemerkung
+FROM kreditkartenkonto k;
