@@ -1,0 +1,65 @@
+Table BankAccount {
+  id integer [primary key]
+  konto_nr text
+  blz text
+  bic text
+  iban text
+  bemerkung text
+}
+
+Table SavingsAccount {
+  id integer [primary key]
+  konto_nr text
+  blz text
+  bic text
+  iban text
+  bemerkung text
+}
+
+Table CreditCardAccount {
+  id integer [primary key]
+  konto_nr text
+  blz text
+  bic text
+  iban text
+  bemerkung text
+}
+
+Table Category {
+  id integer [primary key]
+  name text [not null]
+}
+
+Table Transaction {
+  id integer [primary key]
+  konto_id integer
+  datum date
+  betrag real
+  zweck text
+  kategorie_id integer
+  typ text
+  quelle text
+}
+
+Table SavingsGoal {
+  id integer [primary key]
+  name text [not null]
+  ziel_betrag real
+  ziel_datum date
+  auszahlungskonto_id integer
+  einzahlungskonto_id integer
+}
+
+Table SavingsTransaction {
+  id integer [primary key]
+  sparziel_id integer
+  datum date
+  betrag real
+}
+
+// Relationships
+Ref: Transaction.konto_id > BankAccount.id
+Ref: Transaction.kategorie_id > Category.id
+Ref: SavingsGoal.auszahlungskonto_id > BankAccount.id
+Ref: SavingsGoal.einzahlungskonto_id > SavingsAccount.id
+Ref: SavingsTransaction.sparziel_id > SavingsGoal.id
